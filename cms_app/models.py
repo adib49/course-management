@@ -9,7 +9,7 @@ class CustomUser(AbstractUser):
     )
     
     role = models.CharField(max_length = 20, choices = ROLES)
-    user_id = models.CharField(max_length = 5, unique = True)
+    unique_code = models.CharField(max_length = 5, unique = True, null= True , blank = True)
 
 class Course(models.Model):
     title = models.CharField(max_length = 30)
