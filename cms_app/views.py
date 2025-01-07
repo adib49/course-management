@@ -15,7 +15,7 @@ def student_dashboard(request):
         'courses': enrolled_courses,
         'student': request.user
     }
-    return render(request,'cms/student_dashboard.html',context)
+    return render(request,'cms_app/student_dashboard.html',context)
 
 
 def login_view(request):
