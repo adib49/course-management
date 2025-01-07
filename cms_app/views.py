@@ -19,9 +19,12 @@ def student_dashboard(request):
 
 
 def login_view(request):
+        
     if request.method == 'POST':
+        print("POST data:", request.POST)
         username = request.POST.get('username')
         password = request.POST.get('password')
+        print(f"Atempting to login with username: {username} and password: {password}")
 
         user = authenticate(username = username , password = password)
 
@@ -29,17 +32,17 @@ def login_view(request):
             login(request,user)
 
             if user.role == 'ADMIN':
-                return redirect('admin_dashboard')
+                return redirect('cms_app:admin_dashboard')
             
             elif user.role == 'INSTRUCTOR':
-                return redirect('instructor_dashboard')
+                return redirect('cms_app:instructor_dashboard')
             
             else:
-                return redirect('student_dashboard')
+                return redirect('cms_app:student_dashboard')
         else:
             messages.error(request,'Invalid Credentials')
         
-        return render(request,'cms/login.html')
+    return render(request,'cms_app/login.html')
 
 def logout_view(request):
     logout(request)
