@@ -1,8 +1,9 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth import authenticate,login,logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Course
+from .models import Course,CustomUser
+from .forms import CustomUserForm
 
 def add_course(request):
     if request.user.role != 'INSTRUCTOR':
@@ -25,9 +26,49 @@ def add_course(request):
     
     return redirect ('cms_app:instructor_dashboard')
 
+@login_required
+def admin_dashboard(request):
+    if request.user.role != 'ADMIN':
+        messages.error('Access Denied')
+        return redirect('cms_app:login')
+    
+    all_courses = Course.objects.all()
+    all_user = CustomUser.objects.all()
 
+    if request.method == 'POST':
+        if 'add_user' in request.POST:
+            user_form = CustomUserForm(request.POST)
+            if user_form.is_valid():
+                user_form.save()
+                messages.success(request, 'User added successfully.')
+                return redirect('cms_app:admin_dashboard')
 
+        elif 'update_user' in request.POST:
+            user_id = request.POST.get('user_id')
+            user = get_object_or_404(CustomUser, id=user_id)
+            user_form = CustomUserForm(request.POST, instance=user)
+            if user_form.is_valid():
+                user_form.save()
+                messages.success(request, 'User updated successfully.')
+                return redirect('cms_app:admin_dashboard')
 
+        elif 'delete_user' in request.POST:
+            user_id = request.POST.get('user_id')
+            user = get_object_or_404(CustomUser, id=user_id)
+            user.delete()
+            messages.success(request, 'User deleted successfully.')
+            return redirect('cms_app:admin_dashboard')
+
+    else:
+        user_form = CustomUserForm()
+
+    context = {
+        'courses': all_courses,
+        'users': all_user,
+        'admin': request.user,
+        'user_form': user_form
+    }
+    return render(request,'cms_app/admin_dashboard.html',context)
 
 @login_required
 def student_dashboard(request):
