@@ -16,6 +16,7 @@ class Course(models.Model):
     content = models.CharField(max_length = 200)
     course_code = models.CharField(max_length = 5, unique=True )
     created_at = models.DateTimeField(auto_now_add= True)
-    instructor = models.ForeignKey(CustomUser, on_delete = models.CASCADE, related_name='courses')
-    student = models.ForeignKey(CustomUser,on_delete= models.CASCADE, related_name = 'enrolled_courses')
+    instructor = models.ForeignKey(CustomUser, on_delete = models.CASCADE, related_name='teaching_courses')
+    student = models.ManyToManyField(CustomUser, related_name = 'enrolled_courses')
+
     

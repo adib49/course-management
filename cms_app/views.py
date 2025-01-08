@@ -2,6 +2,32 @@ from django.shortcuts import render,redirect
 from django.contrib.auth import authenticate,login,logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from .models import Course
+
+def add_course(request):
+    if request.user.role != 'INSTRUCTOR':
+        messages.error(request,"Access Denied")
+        return redirect('cms_app:login')
+    
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        course_code = request.POST.get('course_code')
+        content = request.POST.get('content')
+
+        Course.objects.create(
+            title = title,
+            course_code = course_code,
+            content = content,
+            instructor = request.user
+        )
+        messages.success(request,'Course added successfully')
+        return redirect ('cms_app:instructor_dashboard')
+    
+    return redirect ('cms_app:instructor_dashboard')
+
+
+
+
 
 @login_required
 def student_dashboard(request):
@@ -17,6 +43,19 @@ def student_dashboard(request):
     }
     return render(request,'cms_app/student_dashboard.html',context)
 
+@login_required
+def instrcutor_dashboard(request):
+    if request.user.role != 'INSTRUCTOR':
+        messages.error('Access Denied')
+        return redirect('cms_app:login')
+    
+    teaching_courses = request.user.teaching_courses.all()
+
+    context = {
+        'courses':teaching_courses,
+        'instructor':request.user
+    }
+    return render(request,'cms_app/instructor_dashboard.html',context)
 
 def login_view(request):
         
