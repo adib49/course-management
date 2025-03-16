@@ -44,7 +44,114 @@
                                             data-bs-target="#deleteCourseModal{{ course.id }}">
                                         Delete
                                     </button>
+                                    <button class="btn btn-sm btn-success" data-bs-toggle="modal"
+                                            data-bs-target="#assignStudentsModal{{ course.id }}">
+                                        Assign Students
+                                    </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Edit Course Modal -->
+                    <div class="modal fade" id="editCourseModal{{ course.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Course</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{% url 'cms_app:edit_course' course.id %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label for="title{{ course.id }}" class="form-label">Course Title</label>
+                                            <input type="text" class="form-control" id="title{{ course.id }}" name="title" value="{{ course.title }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="course_code{{ course.id }}" class="form-label">Course Code</label>
+                                            <input type="text" class="form-control" id="course_code{{ course.id }}" name="course_code" value="{{ course.course_code }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="content{{ course.id }}" class="form-label">Course Content</label>
+                                            <textarea class="form-control" id="content{{ course.id }}" name="content" rows="3" required>{{ course.content }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Delete Course Modal -->
+                    <div class="modal fade" id="deleteCourseModal{{ course.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Delete Course</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete the course "{{ course.title }}"?</p>
+                                    <p class="text-danger">This action cannot be undone.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <form method="POST" action="{% url 'cms_app:delete_course' course.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Assign Students Modal -->
+                    <div class="modal fade" id="assignStudentsModal{{ course.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Assign Students to {{ course.title }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{% url 'cms_app:assign_students' course.id %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                        <p>Select students to enroll in this course:</p>
+                                        
+                                        {% if all_students %}
+                                            <div class="mb-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="selectAll{{ course.id }}">
+                                                    <label class="form-check-label" for="selectAll{{ course.id }}">
+                                                        Select All
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            {% for student in all_students %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input student-checkbox" type="checkbox" name="students" value="{{ student.id }}" id="student{{ student.id }}{{ course.id }}" 
+                                                        {% if student in course.enrolled_students.all %}checked{% endif %}>
+                                                    <label class="form-check-label" for="student{{ student.id }}{{ course.id }}">
+                                                        {{ student.username }} ({{ student.unique_code }})
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="alert alert-info">
+                                                No students available.
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -56,7 +163,7 @@
             </div>
         {% endif %}
     </div>
-
+    
     <!-- Add Course Modal -->
     <div class="modal fade" id="addCourseModal" tabindex="-1">
         <div class="modal-dialog">
@@ -89,7 +196,21 @@
             </div>
         </div>
     </div>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAllCheckboxes = document.querySelectorAll('[id^="selectAll"]');
+            
+            selectAllCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const modalId = this.id.replace('selectAll', '');
+                    const studentCheckboxes = document.querySelectorAll(`#assignStudentsModal${modalId} .student-checkbox`);
+                    
+                    studentCheckboxes.forEach(studentCheckbox => {
+                        studentCheckbox.checked = this.checked;
+                    });
+                });
+            });
+        });
+    </script>

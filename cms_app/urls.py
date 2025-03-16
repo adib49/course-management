@@ -9,4 +9,7 @@ urlpatterns = [
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('add_course/',views.add_course,name='add_course'),
     path('logout/', views.logout_view, name='logout'),
+    path('edit-course/<int:course_id>/', views.edit_course, name='edit_course'),
+    path('delete-course/<int:course_id>/', views.delete_course, name='delete_course'),
+    path('assign-students/<int:course_id>/', views.assign_students, name='assign_students'),
 ]

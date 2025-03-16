@@ -6,7 +6,7 @@ from .models import Course,CustomUser
 from .forms import CustomUserForm
 
 def add_course(request):
-    if request.user.role != 'INSTRUCTOR':
+    if not request.user.is_superuser and  request.user.role != 'INSTRUCTOR':
         messages.error(request,"Access Denied")
         return redirect('cms_app:login')
     
@@ -28,8 +28,8 @@ def add_course(request):
 
 @login_required
 def admin_dashboard(request):
-    if request.user.role != 'ADMIN':
-        messages.error('Access Denied')
+    if not request.user.is_superuser and request.user.role != 'ADMIN':
+        messages.error(request,'Access Denied')
         return redirect('cms_app:login')
     
     all_courses = Course.objects.all()
@@ -48,7 +48,11 @@ def admin_dashboard(request):
             user = get_object_or_404(CustomUser, id=user_id)
             user_form = CustomUserForm(request.POST, instance=user)
             if user_form.is_valid():
-                user_form.save()
+                user = user_form.save(commit=False)
+                raw_password = user_form.cleaned_data['password']
+                if raw_password:
+                    user.set_password(raw_password)
+                user.save()
                 messages.success(request, 'User updated successfully.')
                 return redirect('cms_app:admin_dashboard')
 
@@ -72,8 +76,8 @@ def admin_dashboard(request):
 
 @login_required
 def student_dashboard(request):
-    if request.user.role != 'STUDENT':
-        messages.error('Access Denied')
+    if not request.user.is_superuser and request.user.role != 'STUDENT':
+        messages.error(request,'Access Denied')
         return redirect('cms_app:login')
     
     enrolled_courses = request.user.enrolled_courses.all()
@@ -86,15 +90,17 @@ def student_dashboard(request):
 
 @login_required
 def instrcutor_dashboard(request):
-    if request.user.role != 'INSTRUCTOR':
-        messages.error('Access Denied')
+    if not request.user.is_superuser and request.user.role != 'INSTRUCTOR':
+        messages.error(request,'Access Denied')
         return redirect('cms_app:login')
     
     teaching_courses = request.user.teaching_courses.all()
+    all_students = CustomUser.objects.filter(role='STUDENT')
 
     context = {
         'courses':teaching_courses,
-        'instructor':request.user
+        'instructor':request.user,
+        'all_students': all_students
     }
     return render(request,'cms_app/instructor_dashboard.html',context)
 
@@ -117,6 +123,9 @@ def login_view(request):
             elif user.role == 'INSTRUCTOR':
                 return redirect('cms_app:instructor_dashboard')
             
+            elif request.user.is_superuser:
+                return redirect('cms_app:admin_dashboard')
+            
             else:
                 return redirect('cms_app:student_dashboard')
         else:
@@ -127,3 +136,64 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('cms_app:login')
+
+@login_required
+def edit_course(request, course_id):
+    if not request.user.is_superuser and request.user.role != 'INSTRUCTOR':
+        messages.error(request,"Access Denied")
+        return redirect('cms_app:login')
+    
+    course = get_object_or_404(Course, id=course_id, instructor=request.user)
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        course_code = request.POST.get('course_code')
+        content = request.POST.get('content')
+
+        course.title = title
+        course.course_code = course_code
+        course.content = content
+        course.save()
+
+        messages.success(request, 'Course updated successfully')
+        return redirect('cms_app:instructor_dashboard')
+    
+    return redirect('cms_app:instructor_dashboard')
+
+@login_required
+def delete_course(request, course_id):
+    if not request.user.is_superuser and request.user.role != 'INSTRUCTOR':
+        messages.error(request,"Access Denied")
+        return redirect('cms_app:instructor_dashboard')
+    
+    course = get_object_or_404(Course, id=course_id, instructor=request.user)
+
+    if request.method == 'POST':
+        course.delete()
+        messages.success(request, 'Course deleted successfully')
+        return redirect('cms_app:instructor_dashboard')
+
+@login_required
+def assign_students(request, course_id):
+    if not request.user.is_superuser and request.user.role != 'INSTRUCTOR':
+        messages.error(request, "Access Denied")
+        return redirect('cms_app:login')
+    
+    course = get_object_or_404(Course, id=course_id, instructor=request.user)
+
+    if request.method == 'POST':
+        selected_students = request.POST.getlist('students')
+        students = CustomUser.objects.filter(id__in=selected_students, role='STUDENT')
+
+        course.enrolled_students.clear()
+
+        course.enrolled_students.add(*students)
+
+        messages.success(request, 'Students assigned successfully')
+        return redirect('cms_app:instructor_dashboard')
+    
+    return redirect('cms_app:instructor_dashboard')
+
+
+        
+    
